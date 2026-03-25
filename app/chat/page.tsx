@@ -11,7 +11,7 @@ export default function ChatPage() {
 
   const [input, setInput] = useState("");
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -19,21 +19,42 @@ export default function ChatPage() {
       content: input,
     };
 
-    // Add user message to chat
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
 
-    // Clear input
+    setMessages(updatedMessages);
     setInput("");
 
-    // simulate AI response
-    setTimeout(() => {
-      const reply: Message = {
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: updatedMessages,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get reply.");
+      }
+
+      const assistantMessage: Message = {
         role: "assistant",
-        content: "This is a mock response.",
+        content: data.reply,
       };
 
-      setMessages((prev) => [...prev, reply]);
-    }, 500);
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        role: "assistant",
+        content: "Sorry, something went wrong.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    }
   };
 
   return (
